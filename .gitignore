@@ -1,0 +1,7 @@
+*.fat
+*.o
+*.exe
+FLATool
+*.stackdump
+
+*-out/
