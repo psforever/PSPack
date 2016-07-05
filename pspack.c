@@ -15,6 +15,17 @@ const char LZO1_MAGIC[4] = {'L', 'Z', 'O', '1'};
 bool carve_lzo(FILE * fp, uint32_t compressedSize, char ** decompressed, size_t * decompressedSize);
 bool carve_lzo_to_file(FILE * fp, const char * name, uint32_t compressedSize);
 
+struct pack_header
+{
+  uint8_t magic[4];
+  uint32_t version;
+  uint32_t compressed_index_size;
+  uint32_t decompressed_index_size;
+  uint32_t num_files;
+  uint32_t unk1;
+  uint32_t unk2;
+};
+
 int main(int argc, char *argv[])
 {
   if(argc < 2) {
@@ -22,39 +33,32 @@ int main(int argc, char *argv[])
   }
 
   if (lzo_init() != LZO_E_OK) {
-    printf("lzo_init() failed !!!\n");
-    return 3;
+    fatal("lzo_init() failed\n");
   }
 
   char * packFileName = argv[1];
   FILE * pFile = fopen(packFileName, "rb");
 
-  uint32_t readData;
-  fread(&readData, 4, 1, pFile); // PACK
-
-  if(memcmp(&readData, PACK_MAGIC, sizeof(PACK_MAGIC))) {
-    fatal("PACK has invalid magic");
+  if(!pFile) {
+    fatal("could not open '%s' for reading", packFileName);
   }
 
-  uint32_t compressedSize = 0;
+  struct pack_header header;
 
-  // PACK header
-  fread(&readData, 4, 1, pFile); // unk
+  if(fread(&header, sizeof(header), 1, pFile) != 1) {
+    fatal("PACK file too small (not enough bytes for the complete header)");
+  }
 
-  fread(&compressedSize, 4, 1, pFile); // compressed index size
 
-  fread(&readData, 4, 1, pFile); // unk
-  fread(&readData, 4, 1, pFile); // unk
-  fread(&readData, 4, 1, pFile); // unk
-  fread(&readData, 4, 1, pFile); // unk
-  //printf("0x%08x (%ud)\n", readData, readData);
-
+  if(memcmp(header.magic, PACK_MAGIC, sizeof(PACK_MAGIC))) {
+    fatal("PACK has invalid magic");
+  }
 
   char * indexData = NULL;
   size_t indexDataSize = 0;
 
-  if(!carve_lzo(pFile, compressedSize, &indexData, &indexDataSize)) {
-    fatal("failed to read PACK index");
+  if(!carve_lzo(pFile, header.compressed_index_size, &indexData, &indexDataSize)) {
+    fatal("failed to decompress PACK index");
   }
 
   size_t startOfEntries = ftell(pFile);
@@ -78,19 +82,28 @@ int main(int argc, char *argv[])
   int i;
   for(i = 0; i < index.numEntries; i++) {
     struct pack_index_entry * e = index.index[i];
-    printf("{%d} %30s (compressed size %6d, offset %6u, U3 %u, U4 %u, U5 %u)\n",
-        i+1, e->name, e->compressedSize,
+    printf("{%d} %30s (compressed size %u -> %u, offset %6u, CRC-32 0x%08x, U1 %u, U3 %u)\n",
+        i+1, e->name, e->compressedSize, e->decompressedSize,
         e->offset,
-        e->unk3,
-        e->unk4,
-        e->unk5);
+        e->crc,
+        e->unk1,
+        e->unk3);
 
     fseek(pFile, e->offset+startOfEntries, SEEK_SET);
 
     char *outName = NULL;
     asprintf(&outName, "./%s%s", dirName, e->name);
+
     //printf("Writting %s...\n", outName);
-    carve_lzo_to_file(pFile, outName, e->compressedSize);
+
+    if(e->compressedSize > 0) {
+      if(!carve_lzo_to_file(pFile, outName, e->compressedSize)) {
+        fatal("failed to unpack file %s", e->name);
+      }
+    } else {
+      FILE * fp = fopen(outName, "wb"); // create a blank file
+      fclose(fp);
+    }
   }
 
 
@@ -112,6 +125,14 @@ bool carve_lzo(FILE * fp, uint32_t compressedSize, char ** decompressed, size_t 
   uint32_t lzoCRC = 0;
   char lzoMagic[4] = {0};
 
+  // nothing to decompress, just skip the entry and signal an error
+  if(compressedSize == 0)
+  {
+    *decompressed = NULL;
+    *decompressedSize = 0;
+    return false;
+  }
+
   size_t start = ftell(fp);
   uint32_t localDecompressedSize;
   if(fread(&localDecompressedSize, 4, 1, fp) != 1) { // decompressed size
@@ -127,23 +148,21 @@ bool carve_lzo(FILE * fp, uint32_t compressedSize, char ** decompressed, size_t 
 
   size_t adj = 4 + 8;
   if(compressedSize < adj) {
-    fatal("compressed size too small");
+    fatal("compressed size too small, ds %zu", localDecompressedSize);
   }
 
   compressedSize -= adj;
 
   bool disableDecompression = false;
 
-  // looks like a decompression error
+  // The MSB of the decompressed size is set when no compression actually took place
   if(localDecompressedSize & 0x80000000) {
-    printf("warning: encountered file that wasn't compressed\n");
-    //localDecompressedSize &= ~0x80000000;
+    localDecompressedSize &= ~0x80000000;
     disableDecompression = true;
   }
 
-  printf("Extracting LZO object at 0x%x (compressed %zu+12, decompressed %zu %x)\n",
-      start, compressedSize, localDecompressedSize, localDecompressedSize);
-
+  //printf("Extracting LZO object at 0x%x (compressed %zu+12, decompressed %zu %x)\n",
+      //start, compressedSize, localDecompressedSize, localDecompressedSize);
 
   const char * compressed = malloc(compressedSize);
 
@@ -156,8 +175,9 @@ bool carve_lzo(FILE * fp, uint32_t compressedSize, char ** decompressed, size_t 
   }
 
   if(disableDecompression) {
+    // Note: no need to free compressed as we are handing it off to the caller
     *decompressed = compressed;
-    *decompressedSize = compressedSize;
+    *decompressedSize = localDecompressedSize;
 
     return true;
   } else {
@@ -170,10 +190,11 @@ bool carve_lzo(FILE * fp, uint32_t compressedSize, char ** decompressed, size_t 
 
     int r = lzo1x_decompress(compressed, compressedSize, localDecompressed, &decompressedNewSize, NULL);
 
+    // free compressed as we are done with that memory
     free(compressed);
 
     if (r == LZO_E_OK) {
-      printf("decompressed %u bytes\n", decompressedNewSize);
+      //printf("decompressed %u bytes\n", decompressedNewSize);
 
       *decompressed = localDecompressed;
       *decompressedSize = decompressedNewSize;
@@ -205,7 +226,7 @@ bool carve_lzo_to_file(FILE * fp, const char * name, uint32_t compressedSize)
     fatal("failed to open output file for writing");
 
   if(fwrite(decompressed, sizeof(char), decompressedSize, outFile) != decompressedSize) {
-    fatal("failed to write all byte to output file");
+    fatal("failed to write all bytes to output file");
   }
 
   fclose(outFile);
