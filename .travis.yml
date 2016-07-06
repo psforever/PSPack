@@ -5,23 +5,42 @@ dist: trusty
 language: c
 matrix:
   include:
-    - compiler: gcc
-      env: PLATFORM="mingw32" ARCH="x86_64" BITSIZE=64 HOST="x86_64"
+    # NOTE: the Travis CI linter will complain about matrix.include.addons being undefined. Ignore it
     - compiler: gcc
       env: PLATFORM="mingw32" ARCH="x86" BITSIZE=32 HOST="i686"
-
+      addons:
+        apt:
+          sources:
+            - sourceline: "ppa:tobydox/mingw-x-trusty"
+          packages:
+            - mingw32
+            - mingw32-x-binutils
+            - mingw32-x-gcc
+            - mingw32-x-runtime
+    - compiler: gcc
+      env: PLATFORM="mingw32" ARCH="x86_64" BITSIZE=64 HOST="x86_64"
+      addons:
+        apt:
+          sources:
+            - sourceline: "ppa:tobydox/mingw-x-trusty"
+          packages:
+            - mingw32
+            - mingw64-x-binutils
+            - mingw64-x-gcc
+            - mingw64-x-runtime
+    - compiler: gcc
+      env: PLATFORM="linux32" ARCH="x86" BITSIZE=32 HOST="i686"
+    - compiler: gcc
+      env: PLATFORM="linux64" ARCH="x86_64" BITSIZE=64 HOST="i686"
 install:
-  - sudo add-apt-repository --yes ppa:tobydox/mingw-x-trusty
-  - sudo apt-get update -qq
-  - uname -m
-  - sudo apt-get install -y mingw32
-  - if [ $BITSIZE == 32 ]; then sudo apt-get install -y mingw32-x-binutils mingw32-x-gcc mingw32-x-runtime; fi
-  - if [ $BITSIZE == 64 ]; then sudo apt-get install -y mingw64-x-binutils mingw64-x-gcc mingw64-x-runtime; fi
   - export MINGW=/opt/mingw$BITSIZE
   - export PATH=$MINGW/bin:$PATH
-  - export PREFIX=$HOST-w64-mingw32-
+  - if [ $PLATFORM == "mingw32" ]; then export PREFIX="$HOST-w64-mingw32-"; fi
+  - export CC=${PREFIX}gcc
+  - export CXX=${PREFIX}gcc
 
 script:
-  - gcc -v
-  - gcc -dumpmachine
+  - compgen -c | grep gcc
+  - $CC -v
+  - $CC -dumpmachine
   - make
