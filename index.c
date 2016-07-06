@@ -30,7 +30,7 @@ bool pack_index_parse(char * indexData, size_t indexSize, struct pack_index * in
 
 		uint32_t * targets[] = {
 			&entry->unk1, &entry->offset, &entry->unk3,
-			&entry->compressedSize, &entry->unk4, &entry->unk5};
+			&entry->compressedSize, &entry->decompressedSize, &entry->crc};
 
 		size_t i;
 		for(i = 0; i < sizeof(targets)/sizeof(*targets); i++) {
