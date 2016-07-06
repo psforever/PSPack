@@ -10,6 +10,14 @@
 #include "fs.h"
 #include "util.h"
 
+#define ANSI_COLOR_RED     "\x1b[31m"
+#define ANSI_COLOR_GREEN   "\x1b[32m"
+#define ANSI_COLOR_YELLOW  "\x1b[33m"
+#define ANSI_COLOR_BLUE    "\x1b[34m"
+#define ANSI_COLOR_MAGENTA "\x1b[35m"
+#define ANSI_COLOR_CYAN    "\x1b[36m"
+#define ANSI_COLOR_RESET   "\x1b[0m"
+
 const char PACK_MAGIC[4] = {'P', 'A', 'C', 'K'};
 const char LZO1_MAGIC[4] = {'L', 'Z', 'O', '1'};
 
@@ -18,94 +26,119 @@ bool carve_lzo_to_file(FILE * fp, const char * name, uint32_t compressedSize);
 
 int main(int argc, char *argv[])
 {
-  if(argc < 2) {
-    fatal("PACK file argument required");
-  }
+	char packMethod[1];
+	char packFileName[MAX_PATH];
+	char packFolder[MAX_PATH];
 
-  if (lzo_init() != LZO_E_OK) {
-    printf("lzo_init() failed !!!\n");
-    return 3;
-  }
+	if (argc < 2) {
+		printf("Would you like to "	ANSI_COLOR_GREEN	"extract"	ANSI_COLOR_RESET
+					" or "	ANSI_COLOR_CYAN	"pack"	ANSI_COLOR_RESET	" a set? [E/P] ");
 
-  char * packFileName = argv[1];
-  FILE * pFile = fopen(packFileName, "rb");
+		scanf("%1c", &packMethod);
+	} else if (argv[1] != 'E' || argv[1] != 'P') {
+		strcpy(packMethod, 'E');
+	} else {
+		strcpy(packMethod, argv[1]);
+	}
 
-  uint32_t readData;
-  fread(&readData, 4, 1, pFile); // PACK
+	switch (*packMethod) {
+		case 'e':
+		case 'E':
+			if (argc < 3) {
+				printf("Please provide the path of the pack (.PAK) file: ");
 
-  if(memcmp(&readData, PACK_MAGIC, sizeof(PACK_MAGIC))) {
-    fatal("PACK has invalid magic");
-  }
+				scanf("%s", &packFileName);
+			} else {
+				strcpy(packFileName, argv[2]);
+			}
 
-  uint32_t compressedSize = 0;
+			  FILE * pFile = fopen(packFileName, "rb");
 
-  // PACK header
-  fread(&readData, 4, 1, pFile); // unk
+			  uint32_t readData;
+			  fread(&readData, 4, 1, pFile); // PACK
 
-  fread(&compressedSize, 4, 1, pFile); // compressed index size
+			  if(memcmp(&readData, PACK_MAGIC, sizeof(PACK_MAGIC))) {
+				fatal("PACK has invalid magic");
+			  }
 
-  fread(&readData, 4, 1, pFile); // unk
-  fread(&readData, 4, 1, pFile); // unk
-  fread(&readData, 4, 1, pFile); // unk
-  fread(&readData, 4, 1, pFile); // unk
-  //printf("0x%08x (%ud)\n", readData, readData);
+			  uint32_t compressedSize = 0;
 
+			  // PACK header
+			  fread(&readData, 4, 1, pFile); // unk
 
-  char * indexData = NULL;
-  size_t indexDataSize = 0;
+			  fread(&compressedSize, 4, 1, pFile); // compressed index size
 
-  if(!carve_lzo(pFile, compressedSize, &indexData, &indexDataSize)) {
-    fatal("failed to read PACK index");
-  }
-
-  size_t startOfEntries = ftell(pFile);
-
-  struct pack_index index;
-  if(!pack_index_parse(indexData, indexDataSize, &index)) {
-    fatal("failed to parse PACK index");
-  }
-
-  char * dirName = NULL;
-  char *packBaseName = basename(packFileName, false);
-  asprintf(&dirName, "%s-out/", packBaseName);
-
-  if(!create_dir(dirName)) {
-    fatal("failed to create output directory");
-  }
-
-  printf("Outputing files to %s\n", dirName);
-  printf("Index listing:\n");
-
-  int i;
-  for(i = 0; i < index.numEntries; i++) {
-    struct pack_index_entry * e = index.index[i];
-    printf("{%d} %30s (compressed size %6d, offset %6u, U3 %u, U4 %u, U5 %u)\n",
-        i+1, e->name, e->compressedSize,
-        e->offset,
-        e->unk3,
-        e->unk4,
-        e->unk5);
-
-    fseek(pFile, e->offset+startOfEntries, SEEK_SET);
-
-    char *outName = NULL;
-    asprintf(&outName, "./%s%s", dirName, e->name);
-    //printf("Writting %s...\n", outName);
-    carve_lzo_to_file(pFile, outName, e->compressedSize);
-  }
+			  fread(&readData, 4, 1, pFile); // unk
+			  fread(&readData, 4, 1, pFile); // unk
+			  fread(&readData, 4, 1, pFile); // unk
+			  fread(&readData, 4, 1, pFile); // unk
+			  //printf("0x%08x (%ud)\n", readData, readData);
 
 
-  /*uint32_t sizeGood = 0x1df9-compressedSize-8-0x1c-0x7da;
-    printf("Size good %u (0x%x)\n", sizeGood, sizeGood);
+			  char * indexData = NULL;
+			  size_t indexDataSize = 0;
 
-    carve_lzo(pFile, "file1", sizeGood);
-    printf("\n");
+			  if(!carve_lzo(pFile, compressedSize, &indexData, &indexDataSize)) {
+				fatal("failed to read PACK index");
+			  }
 
-  // what is the size for this guy?
-  carve_lzo(pFile, "file2", compressedSize);
-  printf("\n");*/
+			  size_t startOfEntries = ftell(pFile);
 
-  return 0;
+			  struct pack_index index;
+			  if(!pack_index_parse(indexData, indexDataSize, &index)) {
+				fatal("failed to parse PACK index");
+			  }
+
+			  char * dirName = NULL;
+			  char *packBaseName = basename(packFileName, false);
+			  asprintf(&dirName, "%s-out/", packBaseName);
+
+			  if(!create_dir(dirName)) {
+				fatal("failed to create output directory");
+			  }
+
+			  printf("Outputing files to %s\n", dirName);
+			  printf("Index listing:\n");
+
+			  int i;
+			  for(i = 0; i < index.numEntries; i++) {
+				struct pack_index_entry * e = index.index[i];
+				printf("{%d} %30s (compressed size %6d, offset %6u, U3 %u, U4 %u, U5 %u)\n",
+					i+1, e->name, e->compressedSize,
+					e->offset,
+					e->unk3,
+					e->unk4,
+					e->unk5);
+
+				fseek(pFile, e->offset+startOfEntries, SEEK_SET);
+
+				char *outName = NULL;
+				asprintf(&outName, "./%s%s", dirName, e->name);
+				//printf("Writting %s...\n", outName);
+				carve_lzo_to_file(pFile, outName, e->compressedSize);
+			  }
+
+
+			  /*uint32_t sizeGood = 0x1df9-compressedSize-8-0x1c-0x7da;
+				printf("Size good %u (0x%x)\n", sizeGood, sizeGood);
+
+				carve_lzo(pFile, "file1", sizeGood);
+				printf("\n");
+
+			  // what is the size for this guy?
+			  carve_lzo(pFile, "file2", compressedSize);
+			  printf("\n");*/
+			  break;
+		case 'p':
+		case 'P':
+			fatal(ANSI_COLOR_RED	"We cannot yet pack a set."	ANSI_COLOR_RESET);
+			break;
+		default:
+			fatal(ANSI_COLOR_RED	"You must select either E (Extract) or P (Pack) to continue."	ANSI_COLOR_RESET);
+		break;
+	}
+
+	return 0;
 }
 
 bool carve_lzo(FILE * fp, uint32_t compressedSize, char ** decompressed, size_t * decompressedSize)
