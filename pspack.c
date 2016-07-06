@@ -1,20 +1,24 @@
+// Include standard libraries.
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <memory.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <unistd.h>
 
+// Include local libraries.
 #include "asprintf.h"
 #include "minilzo.h"
 #include "index.h"
 #include "fs.h"
 #include "util.h"
 
-//Define various application versions.
+// Define various pack versions for their respectable repositories.
 #define	VER_PSPACK		"0.1.3"
-#define	VER_PSPACKWIN	"0.0.9"
+#define	VER_PSPACKWIN	"0.1.1"
 
-//Define colors shorthand.
+// Define colors by their shorthand AnsiColor case.
 #define AC_RED     "\x1b[31m"
 #define AC_GREEN   "\x1b[32m"
 #define AC_YELLOW  "\x1b[33m"
@@ -23,12 +27,16 @@
 #define AC_CYAN    "\x1b[36m"
 #define AC_RESET   "\x1b[0m"
 
+// Set the magic constants used for packaging.
 const char PACK_MAGIC[4] = {'P', 'A', 'C', 'K'};
 const char LZO1_MAGIC[4] = {'L', 'Z', 'O', '1'};
 
+// Declare the functions contained in the app.
 bool carve_lzo(FILE * fp, uint32_t compressedSize, char ** decompressed, size_t * decompressedSize);
 bool carve_lzo_to_file(FILE * fp, const char * name, uint32_t compressedSize);
+bool extractPack(char ** path);
 
+// Set the pack header structure/object values.
 struct pack_header
 {
   uint8_t magic[4];
@@ -41,138 +49,183 @@ struct pack_header
 };
 
 
-int main(int argc, char *argv[])
+int main(int argc, char ** argv)
 {
-	char packMethod[2];
-	char * packFileName;
-	char * packFolder;
-
-	//Output Banner.
+	// Output the banner in ASCII format using ANSI colors.
 	printf(AC_RESET);
-	printf("   _______/\\     "		AC_RED		"    _/_/_/      _/_/_/  _/_/_/                        _/    \n"	AC_RESET);
-	printf("  /      /\\ \\    "	AC_RED		"   _/    _/  _/        _/    _/    _/_/_/    _/_/_/  _/  _/ \n"	AC_RESET);
-	printf(" /PSPACK/nc\\/_/\\ "	AC_MAGENTA	"  _/_/_/      _/_/    _/_/_/    _/    _/  _/        _/_/    \n"	AC_RESET);
+	printf("   _______/\\     "		AC_RED		"    _/___/      _/___/  _/___/                        _/    \n"	AC_RESET);
+	printf("  /      /\\ \\    "	AC_RED		"   _/    _/  _/        _/    _/    _/___/    _/___/  _/  _/ \n"	AC_RESET);
+	printf(" /PSPACK/nc\\/_/\\ "	AC_MAGENTA	"  _/___/      ___/    _/___/    _/    _/  _/        ___/    \n"	AC_RESET);
 	printf("/______/pak/ / / "		AC_BLUE		" _/              _/  _/        _/    _/  _/        _/  _/   \n"	AC_RESET);
-	printf("\\     /\\er/ / /  "	AC_BLUE		"_/        _/_/_/    _/          _/_/_/    _/_/_/  _/    _/  \n"	AC_RESET);
+	printf("\\     /\\er/ / /  "	AC_BLUE		"_/        _/___/    _/          _/___/    _/___/  _/    _/  \n"	AC_RESET);
 	printf(" \\____\\ \\/__\\/ "	AC_GREEN	" PSPack V. "	VER_PSPACK	" - Win V. "	VER_PSPACKWIN	"\n"	AC_RESET);
 
-	if (argc < 2) {
-		printf("Would you like to "	AC_GREEN	"extract"	AC_RESET	" or "	AC_CYAN	"pack"	AC_RESET	"? [E/P/Q] ");
+	// Define the variables needed to handle getopt.
+	int	arguments;
+	char packMethod[1];
+	char * addlArgs[260];
 
+	// While there are arguments passed into the system.
+	while ((arguments = getopt(argc, argv, "abcdefhijklmnopqrstuvwxyz:")) != -1)
+		switch (arguments)
+		{
+		case 'create':
+		case 'c':
+		case 'C':
+			// Assign the pack method.
+			packMethod[0] = 'C';
+
+			// Assign additional arguments.
+			strcpy(addlArgs, optarg);
+
+			break;
+		case 'extract':
+		case 'x':
+		case 'X':
+			// Assign the pack method.
+			packMethod[0] = 'X';
+
+			// Assign additional arguments.
+			strcpy(addlArgs, optarg);
+
+			break;
+		}
+
+	// If there is no pack method defined.
+	if (!packMethod[0])
+	{
+		// Prompt the user for input.
+		printf("Would you like to e" AC_GREEN "x" AC_RESET "tract or " AC_CYAN "c" AC_RESET "reate a pack? [x/c/q] ");
+
+		// Scan in the user input.
 		scanf("%1c", &packMethod);
-	} else if (argv[1] != 'E' || argv[1] != 'e' || argv[1] != 'P' || argv[1] != 'p') {
-		packMethod[0] = 'E';
-		strcpy(packFileName, argv[1]);
-	} else {
-		strcpy(packMethod, argv[1]);
 	}
 
-	switch (*packMethod) {
-		case 'q':
-		case 'Q':
-			printf("Quitting..."	AC_RESET);
-			exit(0);
-			break;
-		case 'e':
-		case 'E':
-			if (!packFileName) {
-				if (argc < 3) {
-					printf("Please provide the path of the pack (.PAK) file: ");
+	switch (packMethod[0])
+	{
+	case 'c':
+	case 'C':
+		// char * packFolder[260];
 
-					scanf("%s", &packFileName);
-				} else {
-					strcpy(packFileName, argv[2]);
-				}
-			}
+		fatal(AC_RED		"We cannot yet create a pack." AC_RESET);
+		break;
+	case 'x':
+	case 'X':
+		// Run the extractor.
+		extractPack(addlArgs);
 
-			FILE * pFile = fopen(packFileName, "rb");
-
-			if(!pFile) {
-				fatal("could not open '%s' for reading", packFileName);
-			}
-
-			struct pack_header header;
-
-			if(fread(&header, sizeof(header), 1, pFile) != 1) {
-				fatal("PACK file too small (not enough bytes for the complete header)");
-			}
-
-			if(memcmp(header.magic, PACK_MAGIC, sizeof(PACK_MAGIC))) {
-				fatal("PACK has invalid magic");
-			}
-
-
-			char * indexData = NULL;
-			size_t indexDataSize = 0;
-
-			if(!carve_lzo(pFile, header.compressed_index_size, &indexData, &indexDataSize)) {
-				fatal("failed to decompress PACK index");
-			}
-
-			size_t startOfEntries = ftell(pFile);
-
-			struct pack_index index;
-			if(!pack_index_parse(indexData, indexDataSize, &index)) {
-				fatal("failed to parse PACK index");
-			}
-
-			char * dirName = NULL;
-			char *packBaseName = basename(packFileName, false);
-			asprintf(&dirName, "%s-out/", packBaseName);
-
-			if(!create_dir(dirName)) {
-				fatal("failed to create output directory");
-			}
-
-			printf("Outputing files to %s\n", dirName);
-			printf("Index listing:\n");
-
-			int i;
-			for(i = 0; i < index.numEntries; i++) {
-				struct pack_index_entry * e = index.index[i];
-				printf("{%d} %30s (compressed size %u -> %u, offset %6u, CRC-32 0x%08x, U1 %u, U3 %u)\n",
-					i+1, e->name, e->compressedSize, e->decompressedSize,
-					e->offset,
-					e->crc,
-					e->unk1,
-					e->unk3);
-
-				fseek(pFile, e->offset+startOfEntries, SEEK_SET);
-
-				char *outName = NULL;
-				asprintf(&outName, "./%s%s", dirName, e->name);
-				
-				//printf("Writting %s...\n", outName);
-				
-				if(e->compressedSize > 0) {
-					if(!carve_lzo_to_file(pFile, outName, e->compressedSize)) {
-						fatal("failed to unpack file %s", e->name);
-					}
-				} else {
-					FILE * fp = fopen(outName, "wb"); // create a blank file
-					fclose(fp);
-				}
-			}
-
-
-			/*uint32_t sizeGood = 0x1df9-compressedSize-8-0x1c-0x7da;
-				printf("Size good %u (0x%x)\n", sizeGood, sizeGood);
-
-				carve_lzo(pFile, "file1", sizeGood);
-				printf("\n");
-
-			// what is the size for this guy?
-			carve_lzo(pFile, "file2", compressedSize);
-			printf("\n");*/
-			break;
-		case 'p':
-		case 'P':
-			fatal(AC_RED	"We cannot yet pack a set."	AC_RESET);
-			break;
-		default:
-			fatal(AC_RED	"You must select either E (Extract) or P (Pack) to continue."	AC_RESET);
+		break;
+	case 'q':
+	case 'Q':
+		printf(AC_YELLOW	"You've chosen to quit and your system has not been modified." AC_RESET);
+		exit(0);
+		break;
+	default:
+		fatal(AC_RED		"You must choose to extract or create a pack to continue." AC_RESET);
 		break;
 	}
+
+	return 0;
+}
+
+bool extractPack(char ** path)
+{
+	// Define variables necessary to compute pack extraction.
+	char * packFileName[260];
+printf(path[0]);
+	// If there is no path.
+	if (path[0] != '\0')
+	{
+		// Copy the string over.
+		strcpy(packFileName, path);
+	} else {
+		// Prompt the user for input.
+		printf("Please provide the path of the pack (.PAK) file: ");
+
+		// Scan in the user input.
+		scanf("%s", &packFileName);
+
+	}
+
+	FILE * pFile = fopen(packFileName, "rb");
+
+	if(!pFile) {
+		fatal("could not open '%s' for reading", packFileName);
+	}
+
+	struct pack_header header;
+
+	if(fread(&header, sizeof(header), 1, pFile) != 1) {
+		fatal("PACK file too small (not enough bytes for the complete header)");
+	}
+
+	if(memcmp(header.magic, PACK_MAGIC, sizeof(PACK_MAGIC))) {
+		fatal("PACK has invalid magic");
+	}
+
+
+	char * indexData = NULL;
+	size_t indexDataSize = 0;
+
+	if(!carve_lzo(pFile, header.compressed_index_size, &indexData, &indexDataSize)) {
+		fatal("failed to decompress PACK index");
+	}
+
+	size_t startOfEntries = ftell(pFile);
+
+	struct pack_index index;
+	if(!pack_index_parse(indexData, indexDataSize, &index)) {
+		fatal("failed to parse PACK index");
+	}
+
+	char * dirName = NULL;
+	char *packBaseName = basename(packFileName, false);
+	asprintf(&dirName, "%s-out/", packBaseName);
+
+	if(!create_dir(dirName)) {
+		fatal("failed to create output directory");
+	}
+
+	printf("Outputing files to %s\n", dirName);
+	printf("Index listing:\n");
+
+	int i;
+	for(i = 0; i < index.numEntries; i++) {
+		struct pack_index_entry * e = index.index[i];
+		printf("{%d} %30s (compressed size %u -> %u, offset %6u, CRC-32 0x%08x, U1 %u, U3 %u)\n",
+			i+1, e->name, e->compressedSize, e->decompressedSize,
+			e->offset,
+			e->crc,
+			e->unk1,
+			e->unk3);
+
+		fseek(pFile, e->offset+startOfEntries, SEEK_SET);
+
+		char *outName = NULL;
+		asprintf(&outName, "./%s%s", dirName, e->name);
+
+		//printf("Writting %s...\n", outName);
+
+		if(e->compressedSize > 0) {
+			if(!carve_lzo_to_file(pFile, outName, e->compressedSize)) {
+				fatal("failed to unpack file %s", e->name);
+			}
+		} else {
+			FILE * fp = fopen(outName, "wb"); // create a blank file
+			fclose(fp);
+		}
+	}
+
+
+	/*uint32_t sizeGood = 0x1df9-compressedSize-8-0x1c-0x7da;
+		printf("Size good %u (0x%x)\n", sizeGood, sizeGood);
+
+		carve_lzo(pFile, "file1", sizeGood);
+		printf("\n");
+
+	// what is the size for this guy?
+	carve_lzo(pFile, "file2", compressedSize);
+	printf("\n");*/
 
 	return 0;
 }
