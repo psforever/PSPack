@@ -1,13 +1,17 @@
+# enable new Trusty build server
+sudo: required
+dist: trusty
+
 language: c
-  matrix:
-include:
-  - compiler: ": w64"
-    env: PLATFORM="mingw32" ARCH="x86_64" BITSIZE=64 HOST="x86_64"
-  - compiler: ": w32"
-    env: PLATFORM="mingw32" ARCH="x86" BITSIZE=32 HOST="i686"
+matrix:
+  include:
+    - compiler: gcc
+      env: PLATFORM="mingw32" ARCH="x86_64" BITSIZE=64 HOST="x86_64"
+    - compiler: gcc
+      env: PLATFORM="mingw32" ARCH="x86" BITSIZE=32 HOST="i686"
 
 install:
-  - sudo add-apt-repository --yes ppa:tobydox/mingw-x-precise            # < MinGW
+  - sudo add-apt-repository --yes ppa:tobydox/mingw-x-trusty
   - sudo apt-get update -qq
   - uname -m
   - sudo apt-get install -y mingw32
