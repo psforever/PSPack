@@ -4,6 +4,7 @@
 #include <stdarg.h>
 #include <stdbool.h>
 
+#include "asprintf.h"
 #include "minilzo.h"
 #include "index.h"
 #include "fs.h"
