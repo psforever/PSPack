@@ -10,13 +10,18 @@
 #include "fs.h"
 #include "util.h"
 
-#define ANSI_COLOR_RED     "\x1b[31m"
-#define ANSI_COLOR_GREEN   "\x1b[32m"
-#define ANSI_COLOR_YELLOW  "\x1b[33m"
-#define ANSI_COLOR_BLUE    "\x1b[34m"
-#define ANSI_COLOR_MAGENTA "\x1b[35m"
-#define ANSI_COLOR_CYAN    "\x1b[36m"
-#define ANSI_COLOR_RESET   "\x1b[0m"
+//Define various application versions.
+#define	VER_PSPACK		"0.1.3"
+#define	VER_PSPACKWIN	"0.0.9"
+
+//Define colors shorthand.
+#define AC_RED     "\x1b[31m"
+#define AC_GREEN   "\x1b[32m"
+#define AC_YELLOW  "\x1b[33m"
+#define AC_BLUE    "\x1b[34m"
+#define AC_MAGENTA "\x1b[35m"
+#define AC_CYAN    "\x1b[36m"
+#define AC_RESET   "\x1b[0m"
 
 const char PACK_MAGIC[4] = {'P', 'A', 'C', 'K'};
 const char LZO1_MAGIC[4] = {'L', 'Z', 'O', '1'};
@@ -42,9 +47,17 @@ int main(int argc, char *argv[])
 	char * packFileName;
 	char * packFolder;
 
+	//Output Banner.
+	printf(AC_RESET);
+	printf("   _______/\\     "		AC_RED		"    _/_/_/      _/_/_/  _/_/_/                        _/    \n"	AC_RESET);
+	printf("  /      /\\ \\    "	AC_RED		"   _/    _/  _/        _/    _/    _/_/_/    _/_/_/  _/  _/ \n"	AC_RESET);
+	printf(" /PSPACK/nc\\/_/\\ "	AC_MAGENTA	"  _/_/_/      _/_/    _/_/_/    _/    _/  _/        _/_/    \n"	AC_RESET);
+	printf("/______/pak/ / / "		AC_BLUE		" _/              _/  _/        _/    _/  _/        _/  _/   \n"	AC_RESET);
+	printf("\\     /\\er/ / /  "	AC_BLUE		"_/        _/_/_/    _/          _/_/_/    _/_/_/  _/    _/  \n"	AC_RESET);
+	printf(" \\____\\ \\/__\\/ "	AC_GREEN	" PSPack V. "	VER_PSPACK	" - Win V. "	VER_PSPACKWIN	"\n"	AC_RESET);
+
 	if (argc < 2) {
-		printf("Would you like to "	ANSI_COLOR_GREEN	"extract"	ANSI_COLOR_RESET
-					" or "	ANSI_COLOR_CYAN	"pack"	ANSI_COLOR_RESET	" a set? [E/P] ");
+		printf("Would you like to "	AC_GREEN	"extract"	AC_RESET	" or "	AC_CYAN	"pack"	AC_RESET	"? [E/P/Q] ");
 
 		scanf("%1c", &packMethod);
 	} else if (argv[1] != 'E' || argv[1] != 'e' || argv[1] != 'P' || argv[1] != 'p') {
@@ -55,6 +68,11 @@ int main(int argc, char *argv[])
 	}
 
 	switch (*packMethod) {
+		case 'q':
+		case 'Q':
+			printf("Quitting..."	AC_RESET);
+			exit(0);
+			break;
 		case 'e':
 		case 'E':
 			if (!packFileName) {
@@ -149,10 +167,10 @@ int main(int argc, char *argv[])
 			break;
 		case 'p':
 		case 'P':
-			fatal(ANSI_COLOR_RED	"We cannot yet pack a set."	ANSI_COLOR_RESET);
+			fatal(AC_RED	"We cannot yet pack a set."	AC_RESET);
 			break;
 		default:
-			fatal(ANSI_COLOR_RED	"You must select either E (Extract) or P (Pack) to continue."	ANSI_COLOR_RESET);
+			fatal(AC_RED	"You must select either E (Extract) or P (Pack) to continue."	AC_RESET);
 		break;
 	}
 
