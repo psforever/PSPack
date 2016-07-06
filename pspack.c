@@ -37,6 +37,7 @@ int main(int argc, char *argv[])
 		scanf("%1c", &packMethod);
 	} else if (argv[1] != 'E' || argv[1] != 'P') {
 		strcpy(packMethod, 'E');
+		strcpy(packFileName, argv[1]);
 	} else {
 		strcpy(packMethod, argv[1]);
 	}

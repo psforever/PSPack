@@ -10,6 +10,8 @@ struct pack_index_entry {
   uint32_t unk1; // always zero
   uint32_t offset;
   uint32_t unk3; // always zero
+  uint32_t unk4; // deprecated @shaql2 patch 1
+  uint32_t unk5; // deprecated @shaql2 patch 1
   uint32_t compressedSize;
   uint32_t decompressedSize;
   uint32_t crc;
