@@ -23,8 +23,5 @@ Running PSPack is relatively simple in Windows. Simply navigate to your PSPack d
 
 You can also pass arguments in directly: 
 
-	pspack.exe E PathToFile.pak
-	pspack.exe P FolderName/
-	pspack.exe PathToFile.pak
-
-If a string other than E or P is provided as an argument, extraction will be the default method. 
+	pspack.exe -x PathToFile.pak
+	pspack.exe -c FolderName/

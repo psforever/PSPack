@@ -61,44 +61,45 @@ int main(int argc, char ** argv)
 	printf(" \\____\\ \\/__\\/ "	AC_GREEN	" PSPack V. "	VER_PSPACK	" - Win V. "	VER_PSPACKWIN	"\n"	AC_RESET);
 
 	// Define the variables needed to handle getopt.
-	int	arguments;
+	int	args;
 	char packMethod[1];
-	char * addlArgs[260];
+	char * arguments;
 
 	// While there are arguments passed into the system.
-	while ((arguments = getopt(argc, argv, "abcdefhijklmnopqrstuvwxyz:")) != -1)
-		switch (arguments)
+	while ((args = getopt(argc, argv, "dvc:x:")) != -1)
+		switch (args)
 		{
-		case 'create':
+		// case 'create':
 		case 'c':
 		case 'C':
 			// Assign the pack method.
 			packMethod[0] = 'C';
 
 			// Assign additional arguments.
-			strcpy(addlArgs, optarg);
+			arguments = optarg;
 
 			break;
-		case 'extract':
+		// case 'extract':
 		case 'x':
 		case 'X':
 			// Assign the pack method.
 			packMethod[0] = 'X';
 
 			// Assign additional arguments.
-			strcpy(addlArgs, optarg);
+			arguments = optarg;
 
 			break;
 		}
 
 	// If there is no pack method defined.
-	if (!packMethod[0])
+	if (packMethod[0] == '\0')
 	{
 		// Prompt the user for input.
-		printf("Would you like to e" AC_GREEN "x" AC_RESET "tract or " AC_CYAN "c" AC_RESET "reate a pack? [x/c/q] ");
+		printf("Would you like to e" AC_CYAN "x" AC_RESET "tract or " AC_YELLOW "c" AC_RESET "reate a pack? "
+				"[" AC_CYAN "x" AC_RESET "/" AC_YELLOW "c" AC_RESET "/" AC_RED "q" AC_RESET "] ");
 
 		// Scan in the user input.
-		scanf("%1c", &packMethod);
+		scanf("%s", &packMethod);
 	}
 
 	switch (packMethod[0])
@@ -106,19 +107,23 @@ int main(int argc, char ** argv)
 	case 'c':
 	case 'C':
 		// char * packFolder[260];
-
 		fatal(AC_RED		"We cannot yet create a pack." AC_RESET);
+
 		break;
 	case 'x':
 	case 'X':
 		// Run the extractor.
-		extractPack(addlArgs);
+		extractPack(arguments);
 
 		break;
 	case 'q':
 	case 'Q':
-		printf(AC_YELLOW	"You've chosen to quit and your system has not been modified." AC_RESET);
+		// Warn the user that they've decided to quit.
+		printf(AC_YELLOW	"You've chosen to quit and nothing has been processed." AC_RESET);
+
+		//Exit.
 		exit(0);
+
 		break;
 	default:
 		fatal(AC_RED		"You must choose to extract or create a pack to continue." AC_RESET);
@@ -131,20 +136,19 @@ int main(int argc, char ** argv)
 bool extractPack(char ** path)
 {
 	// Define variables necessary to compute pack extraction.
-	char * packFileName[260];
-printf(path[0]);
+	char packFileName[260];
+
 	// If there is no path.
-	if (path[0] != '\0')
+	if (!path)
 	{
-		// Copy the string over.
-		strcpy(packFileName, path);
-	} else {
 		// Prompt the user for input.
 		printf("Please provide the path of the pack (.PAK) file: ");
 
 		// Scan in the user input.
 		scanf("%s", &packFileName);
-
+	} else {
+		// Copy the string over.
+		strcpy(packFileName, path);
 	}
 
 	FILE * pFile = fopen(packFileName, "rb");
