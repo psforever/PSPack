@@ -34,7 +34,7 @@ matrix:
       env: PLATFORM="linux" ARCH="x86_64" BITSIZE=64 HOST="x86_64"
 before_install:
   - |
-    if [ $PLATFORM == "linux" && $BITSIZE == "32"]; then
+    if [ $PLATFORM == "linux" ] && [ $BITSIZE == "32" ]; then
       sudo dpkg --add-architecture i386
       sudo apt-get update -qq || true
       sudo apt-get install -y libc6-dev:i386 gcc:i386
