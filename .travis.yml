@@ -39,7 +39,7 @@ matrix:
       env: PLATFORM="linux" ARCH="x86_64" BITSIZE=64 HOST="x86_64"
 before_install:
   - sudo dpkg --add-architecture i386
-  - sudo apt-get update -qq
+install:
   - |
     if [ $PLATFORM == "mingw32" ]; then
       export PREFIX="$HOST-w64-mingw32-";
