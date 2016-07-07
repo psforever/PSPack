@@ -34,7 +34,7 @@ const char LZO1_MAGIC[4] = {'L', 'Z', 'O', '1'};
 // Declare the functions contained in the app.
 bool carve_lzo(FILE * fp, uint32_t compressedSize, char ** decompressed, size_t * decompressedSize);
 bool carve_lzo_to_file(FILE * fp, const char * name, uint32_t compressedSize);
-bool extractPack(char ** path);
+bool extractPack(char * path);
 
 // Set the pack header structure/object values.
 struct pack_header
@@ -76,7 +76,7 @@ int main(int argc, char ** argv)
 			packMethod[0] = 'C';
 
 			// Assign additional arguments.
-			arguments = optarg;
+			arguments = strdup(optarg);
 
 			break;
 		// case 'extract':
@@ -86,7 +86,7 @@ int main(int argc, char ** argv)
 			packMethod[0] = 'X';
 
 			// Assign additional arguments.
-			arguments = optarg;
+			arguments = strdup(optarg);
 
 			break;
 		}
@@ -133,7 +133,7 @@ int main(int argc, char ** argv)
 	return 0;
 }
 
-bool extractPack(char ** path)
+bool extractPack(char * path)
 {
 	// Define variables necessary to compute pack extraction.
 	char packFileName[260];
