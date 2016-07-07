@@ -29,13 +29,23 @@ matrix:
             - mingw64-x-gcc
             - mingw64-x-runtime
     - compiler: gcc
-      env: PLATFORM="linux32" ARCH="x86" BITSIZE=32 HOST="i686"
+      env: PLATFORM="linux" ARCH="x86" BITSIZE=32 HOST="i686"
+      addons:
+        apt:
+          packages:
+            - libc6-dev:i386
+            - gcc:i386
     - compiler: gcc
-      env: PLATFORM="linux64" ARCH="x86_64" BITSIZE=64 HOST="i686"
+      env: PLATFORM="linux" ARCH="x86_64" BITSIZE=64 HOST="x86_64"
 install:
-  - export MINGW=/opt/mingw$BITSIZE
-  - export PATH=$MINGW/bin:$PATH
-  - if [ $PLATFORM == "mingw32" ]; then export PREFIX="$HOST-w64-mingw32-"; fi
+  - |
+    if [ $PLATFORM == "mingw32" ]; then
+      export PREFIX="$HOST-w64-mingw32-";
+      export MINGW=/opt/mingw$BITSIZE
+      export PATH=$MINGW/bin:$PATH
+    elif [ $PLATFORM == "linux" ]; then
+      export PREFIX="$HOST-linux-gnu-";
+    fi
   - export CC=${PREFIX}gcc
   - export CXX=${PREFIX}gcc
 
