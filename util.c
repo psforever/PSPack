@@ -36,7 +36,7 @@ char * basename(const char * path, bool extension)
 #ifdef PLATFORM_WINDOWS
     if(c == '\\' || c == '/')
       break;
-#elif defined(PLATFORM_LINUX)
+#elif defined(PLATFORM_UNIX)
     if(c == '/')
       break;
 #endif

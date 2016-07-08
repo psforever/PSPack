@@ -5,6 +5,10 @@
 #define PLATFORM_WINDOWS
 #elif defined(__linux__)
 #define PLATFORM_LINUX
+#define PLATFORM_UNIX // Linux is Unix
+#elif defined(__APPLE__)
+#define PLATFORM_APPLE
+#define PLATFORM_UNIX // Unix isnt Linux
 #else
 #error "unsupported platform"
 #endif
