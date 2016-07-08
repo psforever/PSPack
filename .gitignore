@@ -5,3 +5,4 @@ FLATool
 *.stackdump
 
 *-out/
+*.swp

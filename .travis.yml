@@ -1,11 +1,12 @@
-# enable new Trusty build server
+# Enable new Trusty build server
 sudo: required
 dist: trusty
 
 language: c
+# NOTE: the Travis CI linter will complain about matrix.include.addons being undefined. Ignore it
 matrix:
   include:
-    # NOTE: the Travis CI linter will complain about matrix.include.addons being undefined. Ignore it
+    # Windows 32-bit
     - compiler: gcc
       env: PLATFORM="mingw32" ARCH="x86" BITSIZE=32 HOST="i686"
       addons:
@@ -17,6 +18,7 @@ matrix:
             - mingw32-x-binutils
             - mingw32-x-gcc
             - mingw32-x-runtime
+    # Windows 64-bit
     - compiler: gcc
       env: PLATFORM="mingw32" ARCH="x86_64" BITSIZE=64 HOST="x86_64"
       addons:
@@ -28,31 +30,19 @@ matrix:
             - mingw64-x-binutils
             - mingw64-x-gcc
             - mingw64-x-runtime
-    - compiler: gcc
-      env: PLATFORM="linux" ARCH="x86" BITSIZE=32 HOST="i686"
+    # Linux 64-bit
     - compiler: gcc
       env: PLATFORM="linux" ARCH="x86_64" BITSIZE=64 HOST="x86_64"
-before_install:
-  - |
-    if [ $PLATFORM == "linux" ] && [ $BITSIZE == "32" ]; then
-      sudo dpkg --add-architecture i386
-      sudo apt-get update -qq || true
-      sudo apt-get install -y libc6-dev:i386 gcc:i386
-    fi
 install:
   - |
     if [ $PLATFORM == "mingw32" ]; then
       export PREFIX="$HOST-w64-mingw32-";
       export MINGW=/opt/mingw$BITSIZE
       export PATH=$MINGW/bin:$PATH
-    elif [ $PLATFORM == "linux" ]; then
-      export PREFIX="$HOST-linux-gnu-";
     fi
   - export CC=${PREFIX}gcc
-  - export CXX=${PREFIX}gcc
+  - export CXX=${PREFIX}g++
 
 script:
-  - compgen -c | grep gcc
-  - $CC -v
   - $CC -dumpmachine
   - make
