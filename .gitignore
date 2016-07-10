@@ -6,3 +6,6 @@ FLATool
 
 *-out/
 *.swp
+
+.cproject
+.project

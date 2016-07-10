@@ -24,7 +24,7 @@ char * get_extension(char * path);
 #define PRIxSZT "%x"
 #endif // PLATFORM_BITS_64
 
-#elif defined(PLATFORM_LINUX)
+#else
 
 #define PRIuSZT "%zu"
 #define PRIxSZT "%zx"
