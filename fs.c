@@ -11,6 +11,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <io.h>
 
 bool dir_exists(const char * path)
 {
@@ -40,6 +41,11 @@ bool file_exists(const char * path)
   }
 
   return true;
+}
+
+bool is_terminal(FILE * fp)
+{
+  return _isatty(_fileno(fp));
 }
 
 #elif defined(PLATFORM_UNIX)
@@ -87,6 +93,10 @@ bool file_exists(const char * path)
   }
 }
 
+bool is_terminal(FILE * fp)
+{
+  return isatty(fileno(fp));
+}
 #endif
 
 size_t file_size(const char * path)

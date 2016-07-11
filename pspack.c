@@ -53,24 +53,36 @@ void banner()
 	printf("       \\/\n\n");
 }
 
+enum pack_method
+{
+  METHOD_NONE,
+  METHOD_EXTRACT,
+  METHOD_CREATE
+};
+
 int main(int argc, char ** argv)
 {
 	// Define the variables needed to handle getopt.
 	int	args;
-	char packMethod[1] = {0};
-	char * arguments;
+	enum pack_method method = METHOD_NONE;
+	char * arguments = NULL;
+
+	if(!is_terminal(stdout))
+	{
+		colors_disable();
+	}
 
 	banner();
 
 	// While there are arguments passed into the system.
 	while ((args = getopt(argc, argv, "dvc:x:")) != -1)
+	{
 		switch (args)
 		{
 		// case 'create':
 		case 'c':
-		case 'C':
 			// Assign the pack method.
-			packMethod[0] = 'C';
+			method = METHOD_CREATE;
 
 			// Assign additional arguments.
 			arguments = strdup(optarg);
@@ -78,56 +90,62 @@ int main(int argc, char ** argv)
 			break;
 		// case 'extract':
 		case 'x':
-		case 'X':
 			// Assign the pack method.
-			packMethod[0] = 'X';
+			method = METHOD_EXTRACT;
 
 			// Assign additional arguments.
 			arguments = strdup(optarg);
 
 			break;
 		}
+	}
 
 	// If there is no pack method defined.
-	if (packMethod[0] == '\0')
+	if (method == METHOD_NONE)
 	{
+		char choice = 0;
+
 		// Prompt the user for input.
-		printf("Would you like to e%sx%stract or %sc%sreate a pack? [%sx%s/%sc%s/%sq%s] ", AC_CYAN, AC_RESET,
+		printf("Would you like to e%sx%stract or %sc%sreate a pack? [%sx%s/%sc%s/%sq%s] ",
+		    AC_CYAN, AC_RESET,
 		    AC_YELLOW, AC_RESET,
 		    AC_CYAN, AC_RESET,
 		    AC_YELLOW, AC_RESET,
 		    AC_RED, AC_RESET);
 
 		// Scan in the user input.
-		scanf("%s", &packMethod);
+		scanf("%c", &choice);
+
+		switch (choice)
+		{
+		case 'c': case 'C':
+			method = METHOD_CREATE;
+			break;
+		case 'x': case 'X':
+			method = METHOD_EXTRACT;
+			break;
+		case 'q': case 'Q':
+			method = METHOD_NONE;
+			break;
+		default:
+			fatal("You must choose to extract or create a pack to continue.");
+			break;
+		}
 	}
 
-	switch (packMethod[0])
+	if(method == METHOD_NONE)
 	{
-	case 'c':
-	case 'C':
-		// char * packFolder[260];
-		fatal("We cannot yet create a pack.");
-
-		break;
-	case 'x':
-	case 'X':
+		// Warn the user that they've decided to quit.
+		printf("%sQuitting.%s", AC_YELLOW, AC_RESET);
+	}
+	else if(method == METHOD_EXTRACT)
+	{
 		// Run the extractor.
 		extractPack(arguments);
-
-		break;
-	case 'q':
-	case 'Q':
-		// Warn the user that they've decided to quit.
-		printf("%sYou've chosen to quit and nothing has been processed.%s", AC_YELLOW, AC_RESET);
-
-		//Exit.
-		exit(0);
-
-		break;
-	default:
-		fatal("You must choose to extract or create a pack to continue.");
-		break;
+	}
+	else if(method == METHOD_CREATE)
+	{
+		fatal("We cannot yet create a pack.");
 	}
 
 	return 0;
@@ -145,10 +163,10 @@ bool extractPack(char * path)
 		printf("Please provide the path of the pack (.PAK) file: ");
 
 		// Scan in the user input.
-		scanf("%s", &packFileName);
+		scanf("%259s", packFileName);
 	} else {
 		// Copy the string over.
-		strcpy(packFileName, path);
+		strncpy(packFileName, path, sizeof(packFileName)-1);
 	}
 
 	FILE * pFile = fopen(packFileName, "rb");
@@ -247,7 +265,7 @@ bool carve_lzo(FILE * fp, uint32_t compressedSize, char ** decompressed, size_t 
     return false;
   }
 
-  size_t start = ftell(fp);
+  //size_t start = ftell(fp);
   uint32_t localDecompressedSize;
   if(fread(&localDecompressedSize, 4, 1, fp) != 1) { // decompressed size
     return false;
@@ -279,7 +297,7 @@ bool carve_lzo(FILE * fp, uint32_t compressedSize, char ** decompressed, size_t 
       //start, compressedSize, localDecompressedSize, localDecompressedSize);
 
 
-  const char * compressed = malloc(compressedSize);
+  char * compressed = malloc(compressedSize);
 
   if(!compressed) {
     fatal("failed to allocate compressed memory");
@@ -303,7 +321,7 @@ bool carve_lzo(FILE * fp, uint32_t compressedSize, char ** decompressed, size_t 
       fatal("failed to allocate decompressed memory");
     }
 
-    int r = lzo1x_decompress(compressed, compressedSize, localDecompressed, &decompressedNewSize, NULL);
+    int r = lzo1x_decompress((const unsigned char *)compressed, compressedSize, (unsigned char *)localDecompressed, &decompressedNewSize, NULL);
 
     // free compressed as we are done with that memory
     free(compressed);
