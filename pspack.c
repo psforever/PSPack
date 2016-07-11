@@ -15,8 +15,9 @@
 #include "util.h"
 
 // Define various pack versions for their respectable repositories.
-#define	VER_PSPACK		"0.1.3"
-#define	VER_PSPACKWIN	"0.1.1"
+#define VERSION_MAJOR 1
+#define VERSION_MINOR 0
+#define VERSION_REVISION 0
 
 // Define colors by their shorthand AnsiColor case.
 #define AC_RED     "\x1b[31m"
@@ -48,22 +49,27 @@ struct pack_header
   uint32_t unk2;
 };
 
+// Output the banner in ASCII format using ANSI colors.
+void banner()
+{
+	printf("\n");
+	printf("   _______/\\\n");
+	printf("  /      /\\ \\       "	AC_BLUE		"   ___  _______           __  \n"	AC_RESET);
+	printf(" / .PAK /, \\/_/\\    "	AC_BLUE		"  / _ \\/ __/ _ \\___ _____/ /__\n"	AC_RESET);
+	printf("/______/. '/ / /    "	AC_MAGENTA	" / ___/\\ \\/ ___/ _ `/ __/  '_/\n"	AC_RESET);
+	printf("\\     /\\ \"/ / /     "AC_RED		"/_/  /___/_/   \\_,_/\\__/_/\\_\\ \n"	AC_RESET);
+	printf(" \\____\\ \\/__\\/    PSPack v%d.%d.%d - PSForever Project\n", VERSION_MAJOR, VERSION_MINOR, VERSION_REVISION);
+	printf("       \\/\n\n");
+}
 
 int main(int argc, char ** argv)
 {
-	// Output the banner in ASCII format using ANSI colors.
-	printf(AC_RESET);
-	printf("   _______/\\     "		AC_RED		"    _/___/      _/___/  _/___/                        _/    \n"	AC_RESET);
-	printf("  /      /\\ \\    "	AC_RED		"   _/    _/  _/        _/    _/    _/___/    _/___/  _/  _/ \n"	AC_RESET);
-	printf(" /PSPACK/nc\\/_/\\ "	AC_MAGENTA	"  _/___/      ___/    _/___/    _/    _/  _/        ___/    \n"	AC_RESET);
-	printf("/______/pak/ / / "		AC_BLUE		" _/              _/  _/        _/    _/  _/        _/  _/   \n"	AC_RESET);
-	printf("\\     /\\er/ / /  "	AC_BLUE		"_/        _/___/    _/          _/___/    _/___/  _/    _/  \n"	AC_RESET);
-	printf(" \\____\\ \\/__\\/ "	AC_GREEN	" PSPack V. "	VER_PSPACK	" - Win V. "	VER_PSPACKWIN	"\n"	AC_RESET);
-
 	// Define the variables needed to handle getopt.
 	int	args;
-	char packMethod[1];
+	char packMethod[1] = {0};
 	char * arguments;
+
+	banner();
 
 	// While there are arguments passed into the system.
 	while ((args = getopt(argc, argv, "dvc:x:")) != -1)
