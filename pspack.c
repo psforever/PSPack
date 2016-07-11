@@ -14,6 +14,7 @@
 #include "fs.h"
 #include "util.h"
 
+//////////// GLOBALS
 // Define various pack versions for their respectable repositories.
 #define VERSION_MAJOR 1
 #define VERSION_MINOR 0
@@ -22,12 +23,16 @@
 // Set the magic constants used for packaging.
 const char PACK_MAGIC[4] = {'P', 'A', 'C', 'K'};
 const char LZO1_MAGIC[4] = {'L', 'Z', 'O', '1'};
+int g_verbose = 0;
+int g_debug = 0;
 
-// Declare the functions contained in the app.
+//////////// FUNCTIONS
+void banner();
+bool extractPack(char * path);
 bool carve_lzo(FILE * fp, uint32_t compressedSize, char ** decompressed, size_t * decompressedSize);
 bool carve_lzo_to_file(FILE * fp, const char * name, uint32_t compressedSize);
-bool extractPack(char * path);
 
+//////////// TYPES
 // Set the pack header structure/object values.
 struct pack_header
 {
@@ -39,19 +44,6 @@ struct pack_header
   uint32_t unk1;
   uint32_t unk2;
 };
-
-// Output the banner in ASCII format using ANSI colors.
-void banner()
-{
-	printf("\n");
-	printf("   _______/\\\n");
-	printf("  /      /\\ \\       %s   ___  _______           __  \n%s", AC_BLUE, AC_RESET);
-	printf(" / .PAK /, \\/_/\\    %s  / _ \\/ __/ _ \\___ _____/ /__\n%s", AC_BLUE, AC_RESET);
-	printf("/______/. '/ / /     %s/ ___/\\ \\/ ___/ _ `/ __/  '_/\n%s", AC_MAGENTA, AC_RESET);
-	printf("\\     /\\ \"/ / /     %s/_/  /___/_/   \\_,_/\\__/_/\\_\\ \n%s", AC_RED, AC_RESET);
-	printf(" \\____\\ \\/__\\/    PSPack v%d.%d.%d - PSForever Project\n", VERSION_MAJOR, VERSION_MINOR, VERSION_REVISION);
-	printf("       \\/\n\n");
-}
 
 enum pack_method
 {
@@ -75,7 +67,7 @@ int main(int argc, char ** argv)
 	banner();
 
 	// While there are arguments passed into the system.
-	while ((args = getopt(argc, argv, "dvc:x:")) != -1)
+	while ((args = getopt(argc, argv, ":dvc:x:")) != -1)
 	{
 		switch (args)
 		{
@@ -97,6 +89,18 @@ int main(int argc, char ** argv)
 			arguments = strdup(optarg);
 
 			break;
+		case 'v':
+			g_verbose++;
+			break;
+		case 'd':
+			g_debug++;
+			break;
+		case '?':
+			fatal("Unknown option '%c'", optopt);
+			break;
+		case ':':
+			fatal("Missing required argument for '%c'", optopt);
+			break;
 		}
 	}
 
@@ -104,6 +108,11 @@ int main(int argc, char ** argv)
 	if (method == METHOD_NONE)
 	{
 		char choice = 0;
+
+		if(!is_terminal(stdin))
+		{
+			fatal("Can only be interactive when reading from a terminal");
+		}
 
 		// Prompt the user for input.
 		printf("Would you like to e%sx%stract or %sc%sreate a pack? [%sx%s/%sc%s/%sq%s] ",
@@ -151,6 +160,19 @@ int main(int argc, char ** argv)
 	return 0;
 }
 
+// Output the banner in ASCII format using ANSI colors.
+void banner()
+{
+	printf("\n");
+	printf("   _______/\\\n");
+	printf("  /      /\\ \\       %s   ___  _______           __  \n%s", AC_BLUE, AC_RESET);
+	printf(" / .PAK /, \\/_/\\    %s  / _ \\/ __/ _ \\___ _____/ /__\n%s", AC_BLUE, AC_RESET);
+	printf("/______/. '/ / /     %s/ ___/\\ \\/ ___/ _ `/ __/  '_/\n%s", AC_MAGENTA, AC_RESET);
+	printf("\\     /\\ \"/ / /     %s/_/  /___/_/   \\_,_/\\__/_/\\_\\ \n%s", AC_RED, AC_RESET);
+	printf(" \\____\\ \\/__\\/    PSPack v%d.%d.%d - PSForever Project\n", VERSION_MAJOR, VERSION_MINOR, VERSION_REVISION);
+	printf("       \\/\n\n");
+}
+
 bool extractPack(char * path)
 {
 	// Define variables necessary to compute pack extraction.
@@ -185,7 +207,6 @@ bool extractPack(char * path)
 		fatal("PACK has invalid magic");
 	}
 
-
 	char * indexData = NULL;
 	size_t indexDataSize = 0;
 
@@ -204,29 +225,37 @@ bool extractPack(char * path)
 	char *packBaseName = basename(packFileName, false);
 	asprintf(&dirName, "%s-out/", packBaseName);
 
+	printf("Extracting %"PRIu32" files to %s\n",
+	    header.num_files, dirName);
+
 	if(!create_dir(dirName)) {
 		fatal("failed to create output directory");
 	}
 
-	printf("Outputing files to %s\n", dirName);
-	printf("Index listing:\n");
+	if(index.numEntries != header.num_files)
+	{
+	  printf("%swarning: index has %"PRIuSZT" files, but pack header says we should have %"PRIu32"%s",
+	      AC_YELLOW, index.numEntries, header.num_files, AC_RESET);
+	}
 
 	int i;
 	for(i = 0; i < index.numEntries; i++) {
 		struct pack_index_entry * e = index.index[i];
-		printf("{%d} %30s (compressed size %u -> %u, offset %6u, CRC-32 0x%08x, U1 %u, U3 %u)\n",
-			i+1, e->name, e->compressedSize, e->decompressedSize,
-			e->offset,
-			e->crc,
-			e->unk1,
-			e->unk3);
+
+		if(g_verbose >= 1)
+		{
+			printf("{%d} %30s (compressed size %u -> %u, offset %6u, CRC-32 0x%08x, U1 %u, U3 %u)\n",
+				i+1, e->name, e->compressedSize, e->decompressedSize,
+				e->offset,
+				e->crc,
+				e->unk1,
+				e->unk3);
+		}
 
 		fseek(pFile, e->offset+startOfEntries, SEEK_SET);
 
 		char *outName = NULL;
 		asprintf(&outName, "./%s%s", dirName, e->name);
-
-		//printf("Writting %s...\n", outName);
 
 		if(e->compressedSize > 0) {
 			if(!carve_lzo_to_file(pFile, outName, e->compressedSize)) {
@@ -237,17 +266,6 @@ bool extractPack(char * path)
 			fclose(fp);
 		}
 	}
-
-
-	/*uint32_t sizeGood = 0x1df9-compressedSize-8-0x1c-0x7da;
-		printf("Size good %u (0x%x)\n", sizeGood, sizeGood);
-
-		carve_lzo(pFile, "file1", sizeGood);
-		printf("\n");
-
-	// what is the size for this guy?
-	carve_lzo(pFile, "file2", compressedSize);
-	printf("\n");*/
 
 	return 0;
 }
@@ -265,7 +283,8 @@ bool carve_lzo(FILE * fp, uint32_t compressedSize, char ** decompressed, size_t 
     return false;
   }
 
-  //size_t start = ftell(fp);
+  long start = ftell(fp);
+
   uint32_t localDecompressedSize;
   if(fread(&localDecompressedSize, 4, 1, fp) != 1) { // decompressed size
     return false;
@@ -280,7 +299,7 @@ bool carve_lzo(FILE * fp, uint32_t compressedSize, char ** decompressed, size_t 
 
   size_t adj = 4 + 8;
   if(compressedSize < adj) {
-    fatal("compressed size too small, ds %zu", localDecompressedSize);
+    fatal("compressed size too small, ds %"PRIu32, localDecompressedSize);
   }
 
   compressedSize -= adj;
@@ -293,9 +312,11 @@ bool carve_lzo(FILE * fp, uint32_t compressedSize, char ** decompressed, size_t 
     disableDecompression = true;
   }
 
-  //printf("Extracting LZO object at 0x%x (compressed %zu+12, decompressed %zu %x)\n",
-      //start, compressedSize, localDecompressedSize, localDecompressedSize);
-
+  if(g_debug >= 1)
+  {
+	    printf("Extracting LZO object at 0x%ld (compressed %"PRIu32"+12, decompressed %"PRIu32" %"PRIx32")\n",
+		start, compressedSize, localDecompressedSize, localDecompressedSize);
+  }
 
   char * compressed = malloc(compressedSize);
 
@@ -336,8 +357,10 @@ bool carve_lzo(FILE * fp, uint32_t compressedSize, char ** decompressed, size_t 
     }
     else
     {
-      printf("internal error - decompression failed: %d\n", r);
-      printf("newSize %u, oldSize %u\n", decompressedNewSize, localDecompressedSize);
+      printf("LZO: internal error - decompression failed: %d\n", r);
+
+      if(g_debug >= 1)
+	printf("newSize %u, oldSize %u\n", decompressedNewSize, localDecompressedSize);
 
       free(localDecompressed);
       return false;

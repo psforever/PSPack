@@ -23,17 +23,17 @@ char * get_extension(char * path);
 #ifdef PLATFORM_WINDOWS
 
 #ifdef PLATFORM_BITS_64
-#define PRIuSZT "%lu"
-#define PRIxSZT "%lx"
+#define PRIuSZT "lu"
+#define PRIxSZT "lx"
 #else
-#define PRIuSZT "%u"
-#define PRIxSZT "%x"
+#define PRIuSZT "u"
+#define PRIxSZT "x"
 #endif // PLATFORM_BITS_64
 
 #else
 
-#define PRIuSZT "%zu"
-#define PRIxSZT "%zx"
+#define PRIuSZT "zu"
+#define PRIxSZT "zx"
 
 #endif // PLATFORM_WINDOWS
 
