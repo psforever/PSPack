@@ -6,13 +6,19 @@
 
 #include "compat.h"
 
+#ifdef PLATFORM_WINDOWS
+#include "ansicolor-w32.h"
+#endif
+
+#include "colors.h"
+
 void fatal(char * msg, ...);
 char * basename(const char * path, bool extension);
 char * string_cat(const char * l, const char * r);
 char * get_extension(char * path);
 
 #define min(x, y) (((x) < (y)) ? (x) : (y))
-
+#define max(x, y) (((x) < (y)) ? (y) : (x))
 
 #ifdef PLATFORM_WINDOWS
 
@@ -29,6 +35,6 @@ char * get_extension(char * path);
 #define PRIuSZT "%zu"
 #define PRIxSZT "%zx"
 
-#endif // PLATFORM_BITS_64
-
 #endif // PLATFORM_WINDOWS
+
+#endif // UTIL_H

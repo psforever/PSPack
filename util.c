@@ -12,9 +12,9 @@ void fatal(char * msg, ...)
   va_list list;
   va_start(list, msg);
 
-  printf("fatal: ");
+  printf("%sfatal: ", AC_RED);
   vprintf(msg, list);
-  printf("\n");
+  printf("\n%s", AC_RESET);
 
   exit(1);
 }

@@ -19,15 +19,6 @@
 #define VERSION_MINOR 0
 #define VERSION_REVISION 0
 
-// Define colors by their shorthand AnsiColor case.
-#define AC_RED     "\x1b[31m"
-#define AC_GREEN   "\x1b[32m"
-#define AC_YELLOW  "\x1b[33m"
-#define AC_BLUE    "\x1b[34m"
-#define AC_MAGENTA "\x1b[35m"
-#define AC_CYAN    "\x1b[36m"
-#define AC_RESET   "\x1b[0m"
-
 // Set the magic constants used for packaging.
 const char PACK_MAGIC[4] = {'P', 'A', 'C', 'K'};
 const char LZO1_MAGIC[4] = {'L', 'Z', 'O', '1'};
@@ -54,10 +45,10 @@ void banner()
 {
 	printf("\n");
 	printf("   _______/\\\n");
-	printf("  /      /\\ \\       "	AC_BLUE		"   ___  _______           __  \n"	AC_RESET);
-	printf(" / .PAK /, \\/_/\\    "	AC_BLUE		"  / _ \\/ __/ _ \\___ _____/ /__\n"	AC_RESET);
-	printf("/______/. '/ / /    "	AC_MAGENTA	" / ___/\\ \\/ ___/ _ `/ __/  '_/\n"	AC_RESET);
-	printf("\\     /\\ \"/ / /     "AC_RED		"/_/  /___/_/   \\_,_/\\__/_/\\_\\ \n"	AC_RESET);
+	printf("  /      /\\ \\       %s   ___  _______           __  \n%s", AC_BLUE, AC_RESET);
+	printf(" / .PAK /, \\/_/\\    %s  / _ \\/ __/ _ \\___ _____/ /__\n%s", AC_BLUE, AC_RESET);
+	printf("/______/. '/ / /     %s/ ___/\\ \\/ ___/ _ `/ __/  '_/\n%s", AC_MAGENTA, AC_RESET);
+	printf("\\     /\\ \"/ / /     %s/_/  /___/_/   \\_,_/\\__/_/\\_\\ \n%s", AC_RED, AC_RESET);
 	printf(" \\____\\ \\/__\\/    PSPack v%d.%d.%d - PSForever Project\n", VERSION_MAJOR, VERSION_MINOR, VERSION_REVISION);
 	printf("       \\/\n\n");
 }
@@ -101,8 +92,11 @@ int main(int argc, char ** argv)
 	if (packMethod[0] == '\0')
 	{
 		// Prompt the user for input.
-		printf("Would you like to e" AC_CYAN "x" AC_RESET "tract or " AC_YELLOW "c" AC_RESET "reate a pack? "
-				"[" AC_CYAN "x" AC_RESET "/" AC_YELLOW "c" AC_RESET "/" AC_RED "q" AC_RESET "] ");
+		printf("Would you like to e%sx%stract or %sc%sreate a pack? [%sx%s/%sc%s/%sq%s] ", AC_CYAN, AC_RESET,
+		    AC_YELLOW, AC_RESET,
+		    AC_CYAN, AC_RESET,
+		    AC_YELLOW, AC_RESET,
+		    AC_RED, AC_RESET);
 
 		// Scan in the user input.
 		scanf("%s", &packMethod);
@@ -113,7 +107,7 @@ int main(int argc, char ** argv)
 	case 'c':
 	case 'C':
 		// char * packFolder[260];
-		fatal(AC_RED		"We cannot yet create a pack." AC_RESET);
+		fatal("We cannot yet create a pack.");
 
 		break;
 	case 'x':
@@ -125,14 +119,14 @@ int main(int argc, char ** argv)
 	case 'q':
 	case 'Q':
 		// Warn the user that they've decided to quit.
-		printf(AC_YELLOW	"You've chosen to quit and nothing has been processed." AC_RESET);
+		printf("%sYou've chosen to quit and nothing has been processed.%s", AC_YELLOW, AC_RESET);
 
 		//Exit.
 		exit(0);
 
 		break;
 	default:
-		fatal(AC_RED		"You must choose to extract or create a pack to continue." AC_RESET);
+		fatal("You must choose to extract or create a pack to continue.");
 		break;
 	}
 
