@@ -18,7 +18,7 @@ $(EXE) : $(OBJ_LIB) $(OBJ)
 	@$(STRIP) $@
 
 # we dont want lots of errors for "library" files
-$(OBJ_LIB): CFLAGS := -O2
+$(OBJ_LIB): CFLAGS := -O2 -Wno-int-to-pointer-cast
 
 %.o : %.c
 	@echo CC $<
