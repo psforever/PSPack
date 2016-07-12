@@ -34,6 +34,7 @@ __write_w32(FILE* fp, const char* buf) {
 
   handle = (HANDLE) _get_osfhandle(fileno(fp));
   GetConsoleScreenBufferInfo(handle, &csbi);
+
   attr = csbi.wAttributes;
 
   if (attr_olds[type] == (WORD) -1) {

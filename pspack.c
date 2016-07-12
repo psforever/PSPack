@@ -63,6 +63,14 @@ int main(int argc, char ** argv)
 	{
 		colors_disable();
 	}
+        else
+        {
+                // When running under cygwin, stdout appears to be a pipe, 
+                // which means stdout is fully buffered (bad)
+                // Fix this by enabling line buffering
+                if(is_cygwin())
+                      setvbuf(stdout, NULL, _IOLBF, 4096);
+        }
 
 	banner();
 
@@ -122,6 +130,8 @@ int main(int argc, char ** argv)
 		    AC_YELLOW, AC_RESET,
 		    AC_RED, AC_RESET);
 
+                fflush(stdout);
+
 		// Scan in the user input.
 		scanf("%c", &choice);
 
@@ -145,7 +155,7 @@ int main(int argc, char ** argv)
 	if(method == METHOD_NONE)
 	{
 		// Warn the user that they've decided to quit.
-		printf("%sQuitting.%s", AC_YELLOW, AC_RESET);
+		printf("%sQuitting.%s\n", AC_YELLOW, AC_RESET);
 	}
 	else if(method == METHOD_EXTRACT)
 	{
@@ -183,6 +193,7 @@ bool extractPack(char * path)
 	{
 		// Prompt the user for input.
 		printf("Please provide the path of the pack (.PAK) file: ");
+                fflush(stdout);
 
 		// Scan in the user input.
 		scanf("%259s", packFileName);

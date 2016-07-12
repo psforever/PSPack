@@ -17,6 +17,7 @@ bool file_exists(const char * path);
 bool dir_exists(const char * path);
 size_t file_size(const char * path);
 bool is_terminal(FILE * fp);
+bool is_cygwin();
 bool create_dir(const char * dir);
 char * path_cat(const char * path1, const char * path2);
 bool path_single_level(const char * path);

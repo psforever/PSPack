@@ -43,9 +43,29 @@ bool file_exists(const char * path)
   return true;
 }
 
+bool is_cygwin()
+{
+  DWORD mode;
+  GetConsoleMode((HANDLE)_get_osfhandle(fileno(stdout)), &mode);
+
+  return GetLastError() == ERROR_INVALID_HANDLE;
+}
+
 bool is_terminal(FILE * fp)
 {
-  return _isatty(_fileno(fp));
+  if(is_cygwin())
+  {
+    DWORD ret = GetFileType((HANDLE)_get_osfhandle(fileno(fp)));
+
+    // there is no way in cygwin to differentiate a pipe from an actual terminal
+    return ret == FILE_TYPE_PIPE;
+  }
+  else
+  {
+    DWORD mode;
+    // some magic: https://lists.gnu.org/archive/html/bug-gnulib/2013-01/txtOh0NRaZbe3.txt
+    return GetConsoleMode((HANDLE)_get_osfhandle(fileno(fp)), &mode) != 0;
+  }
 }
 
 #elif defined(PLATFORM_UNIX)
@@ -96,6 +116,11 @@ bool file_exists(const char * path)
 bool is_terminal(FILE * fp)
 {
   return isatty(fileno(fp));
+}
+
+bool is_cygwin()
+{
+  return false;
 }
 #endif
 
