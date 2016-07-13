@@ -19,6 +19,16 @@ void fatal(char * msg, ...)
   exit(1);
 }
 
+void warning(char * msg, ...)
+{
+  va_list list;
+  va_start(list, msg);
+
+  printf("%swarning: ", AC_YELLOW);
+  vprintf(msg, list);
+  printf("\n%s", AC_RESET);
+}
+
 // Get's the last path element
 // Finds the last period (.) and returns every thing before it if extension is true
 char * basename(const char * path, bool extension)

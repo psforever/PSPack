@@ -13,6 +13,7 @@
 #include "index.h"
 #include "fs.h"
 #include "util.h"
+#include "prompt.h"
 
 //////////// GLOBALS
 // Define various pack versions for their respectable repositories.
@@ -115,25 +116,29 @@ int main(int argc, char ** argv)
 	// If there is no pack method defined.
 	if (method == METHOD_NONE)
 	{
-		char choice = 0;
-
 		if(!is_terminal(stdin))
 		{
 			fatal("Can only be interactive when reading from a terminal");
 		}
 
+		char * prompt = NULL;
+
 		// Prompt the user for input.
-		printf("Would you like to e%sx%stract or %sc%sreate a pack? [%sx%s/%sc%s/%sq%s] ",
+		asprintf(&prompt, "Would you like to e%sx%stract or %sc%sreate a pack? [%sx%s/%sc%s/%sq%s] ",
 		    AC_CYAN, AC_RESET,
 		    AC_YELLOW, AC_RESET,
 		    AC_CYAN, AC_RESET,
 		    AC_YELLOW, AC_RESET,
 		    AC_RED, AC_RESET);
 
-                fflush(stdout);
+		prompt_choice_t choices[] = {
+		  {"c", "create", 'c'},
+		  {"x", "extract", 'x'},
+		  {"q", "quit", 'q'},
+		  {0, 0, 0}
+		};
 
-		// Scan in the user input.
-		scanf("%c", &choice);
+		int choice = prompt_choice(prompt, choices, false, true);
 
 		switch (choice)
 		{
@@ -147,7 +152,7 @@ int main(int argc, char ** argv)
 			method = METHOD_NONE;
 			break;
 		default:
-			fatal("You must choose to extract or create a pack to continue.");
+			fatal("%d You must choose to extract or create a pack to continue.", choice);
 			break;
 		}
 	}
@@ -186,20 +191,19 @@ void banner()
 bool extractPack(char * path)
 {
 	// Define variables necessary to compute pack extraction.
-	char packFileName[260];
+	char * packFileName = NULL;
 
 	// If there is no path.
 	if (!path)
 	{
 		// Prompt the user for input.
-		printf("Please provide the path of the pack (.PAK) file: ");
-                fflush(stdout);
-
-		// Scan in the user input.
-		scanf("%259s", packFileName);
+		packFileName = prompt_string("Please provide the path of the pack (.PAK) file: ");
+		if(!packFileName)
+		{
+		  fatal("failed to read PAK path");
+		}
 	} else {
-		// Copy the string over.
-		strncpy(packFileName, path, sizeof(packFileName)-1);
+		packFileName = path;
 	}
 
 	FILE * pFile = fopen(packFileName, "rb");
@@ -225,11 +229,22 @@ bool extractPack(char * path)
 		fatal("failed to decompress PACK index");
 	}
 
+	if(indexDataSize != header.decompressed_index_size) {
+		warning("PACK header's decompressed index size (%"PRIu32") != actual index size (%"PRIuSZT")",
+		    header.decompressed_index_size, indexDataSize);
+	}
+
 	size_t startOfEntries = ftell(pFile);
 
 	struct pack_index index;
 	if(!pack_index_parse(indexData, indexDataSize, &index)) {
 		fatal("failed to parse PACK index");
+	}
+
+	if(index.numEntries != header.num_files)
+	{
+	  warning("index has %"PRIuSZT" files, but pack header says we should have %"PRIu32,
+	      index.numEntries, header.num_files);
 	}
 
 	char * dirName = NULL;
@@ -241,12 +256,6 @@ bool extractPack(char * path)
 
 	if(!create_dir(dirName)) {
 		fatal("failed to create output directory");
-	}
-
-	if(index.numEntries != header.num_files)
-	{
-	  printf("%swarning: index has %"PRIuSZT" files, but pack header says we should have %"PRIu32"%s",
-	      AC_YELLOW, index.numEntries, header.num_files, AC_RESET);
 	}
 
 	int i;

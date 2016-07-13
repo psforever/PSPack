@@ -12,7 +12,16 @@
 
 #include "colors.h"
 
-void fatal(char * msg, ...);
+// Enable GCC to do format consistency checking for non standard printf-like
+// functions
+#ifdef __GNUC__
+#define PRINTF_FMT __attribute__ ((format (printf, 1, 2)));
+#else
+#define PRINTF_FMT
+#endif
+
+void fatal(char * msg, ...) PRINTF_FMT;
+void warning(char * msg, ...) PRINTF_FMT;
 char * basename(const char * path, bool extension);
 char * string_cat(const char * l, const char * r);
 char * get_extension(char * path);

@@ -1,7 +1,7 @@
 CC=$(PREFIX)gcc
 STRIP=$(PREFIX)strip
 
-SRC=pspack.c index.c util.c fs.c colors.c
+SRC=pspack.c index.c util.c fs.c colors.c prompt.c
 SRC_LIB=asprintf.c minilzo.c ansicolor-w32.c
 
 EXE=pspack.exe
