@@ -222,6 +222,12 @@ bool extractPack(char * path)
 		fatal("PACK has invalid magic");
 	}
 
+	if(g_debug >= 1)
+	{
+		printf("PACK v.%"PRIu32", 0x%"PRIx32", 0x%"PRIx32"\n",
+		    header.version, header.unk1, header.unk2);
+	}
+
 	char * indexData = NULL;
 	size_t indexDataSize = 0;
 
